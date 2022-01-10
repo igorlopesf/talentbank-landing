@@ -97,6 +97,8 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			add_action( 'wp_ajax_astra-sites-get-sites-request-count', array( $this, 'sites_requests_count' ) );
 			add_action( 'wp_ajax_astra-sites-get-blocks-request-count', array( $this, 'blocks_requests_count' ) );
 			add_action( 'wp_ajax_astra-sites-import-sites', array( $this, 'import_sites' ) );
+			add_action( 'wp_ajax_astra-sites-get-all-categories', array( $this, 'get_all_categories' ) );
+			add_action( 'wp_ajax_astra-sites-get-all-categories-and-tags', array( $this, 'get_all_categories_and_tags' ) );
 		}
 
 		/**
@@ -131,6 +133,9 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 
 			// Prepare Misc.
 			require_once ASTRA_SITES_DIR . 'inc/importers/batch-processing/class-astra-sites-batch-processing-misc.php';
+
+			// Prepare Misc.
+			require_once ASTRA_SITES_DIR . 'inc/importers/batch-processing/class-astra-sites-batch-processing-customizer.php';
 
 			// Process Importer.
 			require_once ASTRA_SITES_DIR . 'inc/importers/batch-processing/class-astra-sites-batch-processing-importer.php';
@@ -896,6 +901,9 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			// Add "misc" in import [queue].
 			$classes[] = Astra_Sites_Batch_Processing_Misc::get_instance();
 
+			// Add "customizer" in import [queue].
+			$classes[] = Astra_Sites_Batch_Processing_Customizer::get_instance();
+
 			if ( defined( 'WP_CLI' ) ) {
 				WP_CLI::line( 'Batch Process Started..' );
 				// Process all classes.
@@ -966,6 +974,42 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			);
 
 			return $post_types;
+		}
+
+		/**
+		 * Get all categories.
+		 *
+		 * @return void
+		 */
+		public function get_all_categories() {
+			if ( ! defined( 'WP_CLI' ) && wp_doing_ajax() ) {
+				if ( ! current_user_can( 'customize' ) ) {
+					wp_send_json_error( __( 'You are not allowed to perform this action', 'astra-sites' ) );
+				}
+
+				$all_categories = get_site_option( 'astra-sites-all-site-categories', array() );
+				wp_send_json_success( $all_categories );
+			}
+
+			wp_send_json_error( __( 'You are not allowed to perform this action.', 'astra-sites' ) );
+		}
+
+		/**
+		 * Get all categories and tags.
+		 *
+		 * @return void
+		 */
+		public function get_all_categories_and_tags() {
+			if ( ! defined( 'WP_CLI' ) && wp_doing_ajax() ) {
+				if ( ! current_user_can( 'customize' ) ) {
+					wp_send_json_error( __( 'You are not allowed to perform this action', 'astra-sites' ) );
+				}
+
+				$all_categories_and_tags = get_site_option( 'astra-sites-all-site-categories-and-tags', array() );
+				wp_send_json_success( $all_categories_and_tags );
+			}
+
+			wp_send_json_error( __( 'You are not allowed to perform this action.', 'astra-sites' ) );
 		}
 
 	}

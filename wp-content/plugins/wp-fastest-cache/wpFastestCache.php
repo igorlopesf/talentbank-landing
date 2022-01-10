@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 0.9.5
+Version: 0.9.7
 Author: Emre Vona
 Author URI: http://tr.linkedin.com/in/emrevona
 Text Domain: wp-fastest-cache
@@ -133,13 +133,10 @@ GNU General Public License for more details.
 				add_action('deactivate_plugin', array($this, 'clear_cache_after_deactivate_plugin'));
 			}
 
-			if(defined("WPFC_CLEAR_CACHE_AFTER_PLUGIN_UPDATE") && WPFC_CLEAR_CACHE_AFTER_PLUGIN_UPDATE){
-				add_action('upgrader_process_complete', array($this, 'clear_cache_after_update_plugin'), 10, 2);
-			}
 
-			if(defined("WPFC_CLEAR_CACHE_AFTER_THEME_UPDATE") && WPFC_CLEAR_CACHE_AFTER_THEME_UPDATE){
-				add_action('upgrader_process_complete', array($this, 'clear_cache_after_update_theme'), 10, 2);
-			}
+			add_action('upgrader_process_complete', array($this, 'clear_cache_after_update_plugin'), 10, 2);
+			add_action('upgrader_process_complete', array($this, 'clear_cache_after_update_theme'), 10, 2);
+
 
 			if(defined("WPFC_DISABLE_CLEARING_CACHE_AFTER_WOOCOMMERCE_CHECKOUT_ORDER_PROCESSED") && WPFC_DISABLE_CLEARING_CACHE_AFTER_WOOCOMMERCE_CHECKOUT_ORDER_PROCESSED){
 			}else if(defined("WPFC_DISABLE_CLEARING_CACHE_AFTER_WOOCOMMERCE_ORDER_STATUS_CHANGED") && WPFC_DISABLE_CLEARING_CACHE_AFTER_WOOCOMMERCE_ORDER_STATUS_CHANGED){
@@ -326,14 +323,18 @@ GNU General Public License for more details.
 							}
 						}
 
-						//for non-exists files
-						if(preg_match("/\.css/", $this->current_url())){
-							header('Content-type: text/css');
-							die("/* File not found */");
-						}else if(preg_match("/\.js/", $this->current_url())){
-							header('Content-type: text/js');
-							die("//File not found");
+
+						if(preg_match("/".basename($this->getWpContentDir("/cache/wpfc-minified/"))."/i", $this->current_url())){
+							//for non-exists minified files
+							if(preg_match("/\.css/", $this->current_url())){
+								header('Content-type: text/css');
+								die("/* File not found */");
+							}else if(preg_match("/\.js/", $this->current_url())){
+								header('Content-type: text/js');
+								die("//File not found");
+							}
 						}
+
 					}else{
 						// to show if the user is logged-in
 						add_action('wp_loaded', array($this, "load_admin_toolbar"));
@@ -359,7 +360,7 @@ GNU General Public License for more details.
 
 		public function clear_cache_after_update_plugin($upgrader_object, $options){
 			if($options['action'] == 'update'){
-				if($options['type'] == 'plugin' && isset($options['plugins'])){
+				if($options['type'] == 'plugin' && (isset($options['plugins']) || isset($options['plugin']))){
 					$this->deleteCache(true);
 				}
 			}

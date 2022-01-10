@@ -15,7 +15,7 @@ import ICONS from '../../../icons';
 const MediaUploader = () => {
 	const replaceMediaUpload = () => MediaUpload;
 	const [
-		{ siteLogo, builder, currentCustomizeIndex, currentIndex },
+		{ siteLogo, currentCustomizeIndex, currentIndex },
 		dispatch,
 	] = useStateValue();
 
@@ -76,25 +76,24 @@ const MediaUploader = () => {
 	};
 
 	const nextStep = () => {
-		if ( builder === 'beaver-builder' || builder === 'brizy' ) {
-			dispatch( {
-				type: 'set',
-				currentCustomizeIndex: currentCustomizeIndex + 2,
-			} );
-		} else {
-			dispatch( {
-				type: 'set',
-				currentCustomizeIndex: currentCustomizeIndex + 1,
-			} );
-		}
+		dispatch( {
+			type: 'set',
+			currentCustomizeIndex: currentCustomizeIndex + 1,
+		} );
 	};
 
 	const lastStep = () => {
-		dispatch( {
-			type: 'set',
-			currentIndex: currentIndex - 1,
-			currentCustomizeIndex: 0,
+		sendPostMessage( {
+			param: 'clearPreviewAssets',
+			data: {},
 		} );
+		setTimeout( () => {
+			dispatch( {
+				type: 'set',
+				currentIndex: currentIndex - 1,
+				currentCustomizeIndex: 0,
+			} );
+		}, 300 );
 	};
 
 	const resetLogoWidth = ( event ) => {

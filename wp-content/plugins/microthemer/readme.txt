@@ -101,6 +101,58 @@ Microthemer has built-in documentation! Just click the Help option (top right of
 
 == Changelog ==
 
+= 7.0.9.8 (January 8th, 2022) =
+
+# Bugs fixed
+* The opacity input field was not working properly.
+
+= 7.0.9.7 (January 7th, 2022) =
+
+# Enhancement
+* Minor performance increase.
+
+# Change
+* Some terminology updates to make it clearer that styles are saved as a draft until the Publish button is clicked (unless auto-publish is enabled).
+
+# Bugs fixed
+* When adding a new selector to a closed folder, not all selectors in the folder displayed alongside the newly added selector.
+* Sometimes entries in the history table could say simply "false".
+
+= 7.0.9.3 (January 7th, 2022) =
+
+# Bugs fixed
+* The previous update caused an issue loading the MT interface on some sites, due to an issue with the JS script loading order.
+
+= 7.0.9.2 (January 6th, 2022) =
+
+# Enhancement
+* Added auto-publish option to Settings > General.
+* Added support for completing a firewall captcha form when submitting a license key from a server with a blocked IP address.
+
+# Bugs fixed
+* The publish button was not semi transparent on first install, and the initial notification was a bit confusing.
+* The color picker opacity slider did not work since the recent 7.0.8.5 update.
+* It was awkward to save multiple colors, one after the other, using the color picker save button.
+
+= 7.0.8.8 (December 28th, 2021) =
+
+# Bugs fixed
+* A conflict with UIPress admin styles.
+* Styling issue with CSS reference - white BG and spinner could display below scroll area.
+
+= 7.0.8.6 (December 27th, 2021) =
+
+# Bugs fixed
+* An issue loading tooltips on the frontend could cause issues loading MT.
+
+= 7.0.8.5 (December 22nd, 2021) =
+
+# Bugs fixed
+* An issue with the color picker closing when using the VAR field and generating an error sometimes.
+* Color picker opacity slider could overlap the VAR dropdown menu.
+* Dark theme colors could display in odd places (e.g. dividers, color picker, input borders) with the light theme if a CSS concatenation plugin changed the name of MT's internal CSS file that loads on the frontend.
+* The top selector suggestions menu could not be clicked under certain circumstances.
+
 = 7.0.8.1 (December 16th, 2021) =
 
 # Bugs fixed

@@ -4,6 +4,8 @@ import { decodeEntities } from '@wordpress/html-entities';
 import { Tooltip } from '@brainstormforce/starter-templates';
 import { useStateValue } from '../../store/store';
 import ICONS from '../../../icons';
+import { whiteLabelEnabled } from '../../utils/functions';
+const { themeStatus, firstImportStatus, analytics } = starterTemplates;
 
 const AdvancedSettings = () => {
 	const [ showSection, setShowSection ] = useState( true );
@@ -72,9 +74,7 @@ const AdvancedSettings = () => {
 			: [];
 
 	const themeStatusClass =
-		'installed-and-active' !== starterTemplates.themeStatus
-			? 'theme-check'
-			: '';
+		'installed-and-active' !== themeStatus ? 'theme-check' : '';
 
 	return (
 		<div
@@ -90,7 +90,7 @@ const AdvancedSettings = () => {
 			</p>
 			<div className="survey-advanced-section">
 				<ul>
-					{ 'yes' === starterTemplates.firstImportStatus && (
+					{ 'yes' === firstImportStatus && (
 						<li>
 							<input
 								type="checkbox"
@@ -125,8 +125,7 @@ const AdvancedSettings = () => {
 							</Tooltip>
 						</li>
 					) }
-					{ 'installed-and-active' !==
-						starterTemplates.themeStatus && (
+					{ 'installed-and-active' !== themeStatus && (
 						<li>
 							<input
 								type="checkbox"
@@ -257,7 +256,7 @@ const AdvancedSettings = () => {
 							{ ICONS.questionMark }
 						</Tooltip>
 					</li>
-					{ starterTemplates.analytics !== 'yes' && (
+					{ ! whiteLabelEnabled() && analytics !== 'yes' && (
 						<li>
 							<input
 								type="checkbox"

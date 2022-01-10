@@ -23,7 +23,7 @@ if ( ! class_exists( 'WXR_Importer' ) && class_exists( 'WP_Importer' ) ) :
 		/**
 		 * Maximum supported WXR version
 		 */
-		const MAX_WXR_VERSION = 1.2;
+		const MAX_WXR_VERSION = '1.2';
 
 		/**
 		 * Regular expression for checking if a post references an attachment
@@ -2137,7 +2137,10 @@ if ( ! class_exists( 'WXR_Importer' ) && class_exists( 'WP_Importer' ) ) :
 
 				// Run the update.
 				$data['ID'] = $post_id;
-				$result     = wp_update_post( $data, true );
+
+				$data = wp_slash( $data );
+
+				$result = wp_update_post( $data, true );
 				if ( is_wp_error( $result ) ) {
 					$this->logger->warning(
 						sprintf(

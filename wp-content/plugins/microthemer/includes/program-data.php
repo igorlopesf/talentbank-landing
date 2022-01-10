@@ -755,6 +755,11 @@ $this->default_preferences = array(
 	"enq_js" => array(),
 	"num_saves" => 0, // keep track of saves for caching purposes
 	"num_unpublished_saves" => 0,
+
+	// might be better to tab into the revisions table as saves can happen when running internal data formatting updates
+	"num_revisions" => 0,
+	"num_unpublished_revisions" => 0,
+
 	// "show_adv_wizard" => 0,
 	"adv_wizard_tab" => 'refine-targeting',
 	"program_settings_tab" => 'general',
@@ -1208,16 +1213,15 @@ $this->menu = array(
 				'icon_name' => 'js'
 			),
 
-			/* Add if requested
-			 * 'auto_publish_mode' => array(
-				'new_set' => 1,
+			'auto_publish_mode' => array(
+				//'new_set' => 1,
 				'name' => esc_html__('Auto-publish', 'microthemer'),
 				'title' => esc_attr__("Automatically publish changes rather than saving as draft first", 'microthemer'),
 				'toggle' => $this->preferences['auto_publish_mode'],
 				'class' => 'auto-publish-mode',
 				'data-pos' => esc_attr__('Enable Auto-publish mode', 'microthemer'),
 				'data-neg' => esc_attr__('Disable Auto-publish mode', 'microthemer'),
-			),*/
+			),
 
 		)
 	),
@@ -1701,7 +1705,10 @@ $this->menu = array(
 				'class' => 'back-to-frontend',
 				'icon_name' => 'site-frontend',
 				'item_link' => $this->preferences['preview_url'],
-				'link_id' => 'back-to-frontend'
+				'link_id' => 'back-to-frontend',
+				'text_data_attr' => array(
+					'draft-status' => esc_attr__('draft', 'microthemer'),
+				),
 			),
 		)
 	),

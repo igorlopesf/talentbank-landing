@@ -62,6 +62,8 @@ $this->preferences['wizard_expanded'] ? $ui_class.= ' wizard_expanded' : false;
 $this->preferences['code_manual_resize'] ? $ui_class.= ' code_manual_resize' : false;
 $this->preferences['show_extra_actions'] ? $ui_class.= ' show_extra_actions' : false;
 $this->preferences['specificity_preference'] ? $ui_class.= ' specificity_preference' : false;
+$this->preferences['auto_publish_mode'] ? $ui_class.= ' auto_publish_mode' : false;
+
 
 
 $this->preferences['dock_folders_left'] ? $ui_class.= ' dock_folders_left' : false;
@@ -195,6 +197,9 @@ require_once('common-inline-assets.php');
 		<span id='plugin-url' rel='<?php echo $this->thispluginurl; ?>'></span>
 		<span id='docs-url' rel='<?php echo 'admin.php?page=' . $this->docspage; ?>'></span>
 		<span id='tooltip_delay' rel='<?php echo $this->preferences['tooltip_delay']; ?>'></span>
+
+        <span id='inno-firewall-issue' rel='<?php echo $this->innoFirewall ? 1 : 0 ?>'></span>
+
 
         <?php
         // root toggle for manual resize of editor
@@ -445,10 +450,11 @@ require_once('common-inline-assets.php');
 	                    );
 
                         // combo-dots, has-suggestions removed to make input easier to search
-
+                        //
                         ?>
 
-                        <input id="code-hierarchy-input" type="text" data-appto="#style-components"
+                        <input id="code-hierarchy-input" type="text"
+                               data-appto="#style-components"
                                rel="all_sel_suggestions" spellcheck="false"
                                class="code-hierarchy-input hierarchy-input has-arrows combobox" name="code_hierarchy_input" value="">
                         <span class="combo-arrow cur-item-dropdown"></span>
@@ -1021,7 +1027,7 @@ require_once('common-inline-assets.php');
 
                             <?php
 	                        echo $this->toggle('hover_inspect', array(
-	                            'toggle' => 1,
+	                            'toggle' => 0, // have off by default, so we can see when targeting fails to apply
 	                            'toggle_id' => 'hover-inspect-toggle',
 		                        'data-pos' => esc_attr__('Enable targeting', 'microthemer'),
 		                        'data-neg' => esc_attr__('Disable targeting', 'microthemer'),
@@ -1319,6 +1325,8 @@ require_once('common-inline-assets.php');
 	// output dynamic JS here as it changes on page load
 	echo '<script type="text/javascript">';
 
+	//echo ' console.log("The object", TvrMT.data); ';
+
 	// auto-show unlock dialog
 	echo 'var launchMTUnlock = ' . (isset($_GET['launch_unlock']) ? 1 : 0) . ";\n\n";
 
@@ -1396,6 +1404,40 @@ require_once('common-inline-assets.php');
 									value='<?php echo $attempted_email; ?>' />
 							</li>
 						</ul>
+
+                        <?php
+
+                        if ($this->innoFirewall){
+
+	                        $realIP = file_get_contents("http://ipecho.net/plain");
+	                        $debug_info = '';
+
+	                        if (!empty($this->innoFirewall['debug'])){
+		                        $debug_info = '<br /><br /><div class="heading">Debug info</div>
+                                <pre class="connection-debug">'.print_r($this->innoFirewall['debug'], true).'</pre>';
+	                        }
+
+                            echo
+                            '
+                            <div class="firewall-captcha">
+                                <div class="heading">Possible firewall issue</div>
+                                <ol>
+                                    <li>Please make a note of "<b>'.esc_html($realIP).'</b>" as well as any other IP address that may be shown in the box below - <b>before doing step 2.</b></li>
+                                    <li>Fill out the captcha form below, if one is shown.</li>
+                                    <li>Once you have completed the captcha form, try submitting your license key again.</li>
+                                    <li>If you still cannot unlock Microthemer, please <a target="_blank" href="https://themeover.com/support/contact/">send us</a> the IP address(es) you noted down in step 1.</li>
+                                  
+                                </ol>
+                                
+                                <iframe src="'.esc_attr($this->innoFirewall['url']).'" width="100%" height="500"></iframe>
+                                
+                                '.$debug_info.'
+                            </div>
+                            ';
+                        }
+
+                        ?>
+
 
 						<?php echo $this->dialog_button('Validate', 'input', 'ui-validate'); ?>
 

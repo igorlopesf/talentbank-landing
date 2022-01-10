@@ -116,7 +116,8 @@ $TvrLang = array(
 	'original_label' => esc_html__('Original label', 'microthemer'),
 	'label_suggestions' => esc_html__('Label suggestions', 'microthemer'),
 	//'save_settings' => esc_html__('Save settings', 'microthemer'),
-	'settings_saved' => esc_html__('Settings saved', 'microthemer'),
+	'settings_saved_and_published' => esc_html__('Settings saved and published', 'microthemer'),
+	'settings_saved' => esc_html__('Draft saved', 'microthemer'),
 	'save_settings' => esc_html__('Saving settings', 'microthemer'),
 	'save_settings_error' => esc_html__('Save error', 'microthemer'),
 	'initial_welcome' => esc_html__('Click to style anything', 'microthemer'),
@@ -289,7 +290,12 @@ $TvrLang = array(
 
 // main script
 if ($_GET['page'] == $this->microthemeruipage){
-	wp_localize_script( 'tvr_main_ui', 'TvrLang', $TvrLang);
+
+	// we now use TvrLang in the mt-spectrum file so set the handle to tvr_deps when minified
+	// so the var has loaded before the deps.js script
+	$load_before_handle = TVR_DEV_MODE ? 'tvr_main_ui' : 'tvr_deps';
+
+	wp_localize_script( $load_before_handle, 'TvrLang', $TvrLang);
 }
 // stand alone prefs page needs too
 else if ($_GET['page'] == $this->preferencespage){

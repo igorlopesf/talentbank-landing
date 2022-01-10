@@ -5,6 +5,8 @@ import DefaultStep from '../../components/default-step/index';
 import { useStateValue } from '../../store/store';
 import './style.scss';
 import ICONS from '../../../icons';
+import { whiteLabelEnabled } from '../../utils/functions';
+const { siteUrl } = starterTemplates;
 
 const getTotalTime = ( value ) => {
 	const hours = Math.floor( value / 60 / 60 );
@@ -73,7 +75,7 @@ const Congrats = () => {
 	const [ {} ] = useStateValue();
 	const [ showClickToPlay, setShowClickToPlay ] = useState( true );
 
-	const link = `<a href=${ starterTemplates.siteUrl } target="_blank">View Your Website</a>`;
+	const link = `<a href=${ siteUrl } target="_blank">View Your Website</a>`;
 
 	const start = localStorage.getItem( 'st-import-start' );
 	const end = localStorage.getItem( 'st-import-end' );
@@ -87,7 +89,7 @@ const Congrats = () => {
 
 	let descMessage;
 	let tweetMessage;
-	const threshold = 15; // Max 15mins threshold.
+	const threshold = 5; // Max 5 mins threshold.
 
 	if ( timeTaken > 0 && timeTaken <= threshold ) {
 		timeTaken = timeTaken < 1 ? timeTaken.split( '.' )[ 1 ] : timeTaken;
@@ -136,42 +138,52 @@ const Congrats = () => {
 						className="screen-description p-bold"
 						dangerouslySetInnerHTML={ { __html: descMessage } }
 					/>
-					<div className="video-showcase" onClick={ handleClick }>
-						{ showClickToPlay && (
-							<div className="click-to-play-wrap">
-								<span className="click-btn-text">
-									{ ICONS.clickToPlay }
-								</span>
-								<span className="youtube-btn middle-content">
-									{ ICONS.youtube }
-								</span>
+					{ ! whiteLabelEnabled() && (
+						<>
+							<div
+								className="video-showcase"
+								onClick={ handleClick }
+							>
+								{ showClickToPlay && (
+									<div className="click-to-play-wrap">
+										<span className="click-btn-text">
+											{ ICONS.clickToPlay }
+										</span>
+										<span className="youtube-btn middle-content">
+											{ ICONS.youtube }
+										</span>
+									</div>
+								) }
+								<iframe
+									src={ `https://www.youtube-nocookie.com/embed/${ ytId }?rel=0&autoplay=1&mute=1&controls=0&showinfo=0&loop=1&modestbranding=1&loop=1` }
+									frameBorder="0"
+									allow="autoplay; encrypted-media"
+									allowFullScreen
+									title="st-information-video"
+									height="415"
+									width="740"
+									id="st-information-video"
+								/>
 							</div>
-						) }
-						<iframe
-							src={ `https://www.youtube-nocookie.com/embed/${ ytId }?rel=0&autoplay=1&mute=1&controls=0&showinfo=0&loop=1&modestbranding=1&loop=1` }
-							frameBorder="0"
-							allow="autoplay; encrypted-media"
-							allowFullScreen
-							title="st-information-video"
-							height="415"
-							width="740"
-							id="st-information-video"
-						/>
-					</div>
-					<div className="tweet-import-success">
-						<p className="tweet-text">{ tweetMessage }</p>
-						<a
-							href={ `https://twitter.com/intent/tweet?text=${ tweetMessage }` }
-							target="_blank"
-							className="twitter-btn-wrap"
-							rel="noreferrer"
-						>
-							<p className="tweet-btn">
-								{ __( 'CLICK TO TWEET', 'astra-sites' ) }
-							</p>
-							{ ICONS.twitter }
-						</a>
-					</div>
+							<div className="tweet-import-success">
+								<p className="tweet-text">{ tweetMessage }</p>
+								<a
+									href={ `https://twitter.com/intent/tweet?text=${ tweetMessage }` }
+									target="_blank"
+									className="twitter-btn-wrap"
+									rel="noreferrer"
+								>
+									<p className="tweet-btn">
+										{ __(
+											'CLICK TO TWEET',
+											'astra-sites'
+										) }
+									</p>
+									{ ICONS.twitter }
+								</a>
+							</div>
+						</>
+					) }
 				</div>
 			}
 			actions={ null }

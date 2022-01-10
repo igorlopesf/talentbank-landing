@@ -7,10 +7,17 @@ import { useStateValue } from '../../store/store';
 import SurveyForm from './survey';
 import AdvancedSettings from './advanced-settings';
 import './style.scss';
+const { phpVersion, analytics } = starterTemplates;
 
 const Survey = () => {
 	const [
-		{ currentIndex, builder, requiredPlugins, analyticsFlag },
+		{
+			currentIndex,
+			builder,
+			requiredPlugins,
+			analyticsFlag,
+			shownRequirementOnce,
+		},
 		dispatch,
 	] = useStateValue();
 
@@ -54,9 +61,17 @@ const Survey = () => {
 		};
 	}
 
+	let requirementsFlag;
+	if ( shownRequirementOnce === true ) {
+		requirementsFlag = false;
+	} else {
+		requirementsFlag =
+			Object.keys( requirementsErrors ).length > 0 ||
+			Object.keys( requirementWarning ).length > 0;
+	}
+
 	const [ showRequirementCheck, setShowRequirementCheck ] = useState(
-		Object.keys( requirementsErrors ).length > 0 ||
-			Object.keys( requirementWarning ).length > 0
+		requirementsFlag
 	);
 
 	const [ formDetails, setFormDetails ] = useState( {
@@ -64,6 +79,7 @@ const Survey = () => {
 		email: '',
 		wp_user_type: '',
 		build_website_for: '',
+		opt_in: false,
 	} );
 
 	const updateFormDetails = ( field, value ) => {
@@ -73,8 +89,21 @@ const Survey = () => {
 		} ) );
 	};
 
+	const setStartFlag = () => {
+		const content = new FormData();
+		content.append( 'action', 'astra-sites-set-start-flag' );
+		content.append( '_ajax_nonce', astraSitesVars._ajax_nonce );
+
+		fetch( ajaxurl, {
+			method: 'post',
+			body: content,
+		} );
+	};
+
 	const handleSurveyFormSubmit = ( e ) => {
 		e.preventDefault();
+
+		setStartFlag();
 
 		setTimeout( () => {
 			dispatch( {
@@ -83,7 +112,7 @@ const Survey = () => {
 			} );
 		}, 500 );
 
-		if ( starterTemplates.analytics !== 'yes' ) {
+		if ( analytics !== 'yes' ) {
 			// Send data to analytics.
 			const answer = analyticsFlag ? 'yes' : 'no';
 			const optinAnswer = new FormData();
@@ -111,12 +140,17 @@ const Survey = () => {
 			return;
 		}
 
+		if ( ! formDetails.opt_in ) {
+			return;
+		}
+
 		const subscriptionFields = {
 			EMAIL: formDetails.email,
 			FIRSTNAME: formDetails.first_name,
 			PAGE_BUILDER: builder,
 			WP_USER_TYPE: formDetails.wp_user_type,
 			BUILD_WEBSITE_FOR: formDetails.build_website_for,
+			OPT_IN: formDetails.opt_in,
 		};
 
 		const content = new FormData();
@@ -206,7 +240,48 @@ const Survey = () => {
 		);
 	};
 
-	const requirementCheck = () => {
+	const handleRequirementCheck = () => {
+		setShowRequirementCheck( false );
+		dispatch( {
+			type: 'set',
+			shownRequirementOnce: true,
+		} );
+	};
+
+	const hardRequirement = () => {
+		return (
+			<div className="requirement-check-wrap">
+				<h1>{ __( "We're Almost There!", 'astra-sites' ) }</h1>
+
+				<p>
+					{ __(
+						'The demo you are trying to import requires a few plugins to be installed and activated. Your current PHP version does not match the minimum requirement for these plugins.',
+						'astra-sites'
+					) }
+				</p>
+
+				<p className="current-php-version">
+					<strong>{ `Current PHP version: ${ phpVersion }` }</strong>
+				</p>
+
+				<ul className="requirement-check-list">
+					{ Object.values( requiredPlugins.incompatible_plugins ).map(
+						( value, index ) => {
+							return (
+								<li key={ index }>
+									<div className="requirement-list-item">
+										{ `${ value.name } - PHP Version: ${ value.min_php_version } or higher` }
+									</div>
+								</li>
+							);
+						}
+					) }
+				</ul>
+			</div>
+		);
+	};
+
+	const optionalRequirement = () => {
 		return (
 			<div className="requirement-check-wrap">
 				<h1>{ __( "We're Almost There!", 'astra-sites' ) }</h1>
@@ -270,7 +345,7 @@ const Survey = () => {
 				</ul>
 				<button
 					className="submit-survey-btn button-text d-flex-center-align"
-					onClick={ () => setShowRequirementCheck( false ) }
+					onClick={ handleRequirementCheck }
 					disabled={
 						Object.keys( requirementsErrors ).length > 0
 							? true
@@ -284,20 +359,20 @@ const Survey = () => {
 		);
 	};
 
+	let defaultStepContent = surveyForm();
+
+	if ( Object.keys( requiredPlugins.incompatible_plugins ).length > 0 ) {
+		defaultStepContent = hardRequirement();
+	} else if ( showRequirementCheck ) {
+		defaultStepContent = optionalRequirement();
+	} else if ( skipPlugins ) {
+		defaultStepContent = thirdPartyPluginList();
+	}
+
 	return (
 		<DefaultStep
 			content={
-				<>
-					<div className="survey-container">
-						{ showRequirementCheck && requirementCheck() }
-						{ ! showRequirementCheck && (
-							<>
-								{ skipPlugins && thirdPartyPluginList() }
-								{ ! skipPlugins && surveyForm() }
-							</>
-						) }
-					</div>
-				</>
+				<div className="survey-container"> { defaultStepContent } </div>
 			}
 			actions={
 				<>

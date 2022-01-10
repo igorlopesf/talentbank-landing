@@ -10,8 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ST_ERROR_FATALS', E_ERROR | E_PARSE | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR );
-
 if ( ! class_exists( 'Astra_Sites' ) ) :
 
 	/**
@@ -160,6 +158,17 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 			add_filter( 'heartbeat_received', array( $this, 'search_push' ), 10, 2 );
 			add_filter( 'status_header', array( $this, 'status_header' ), 10, 4 );
 			add_filter( 'wp_php_error_message', array( $this, 'php_error_message' ), 10, 2 );
+			add_filter( 'wp_import_post_data_processed', array( $this, 'wp_slash_after_xml_import' ), 99, 2 );
+		}
+
+		/**
+		 * Add slashes while importing the XML with WordPress Importer v2.
+		 *
+		 * @param array $postdata Processed Post data.
+		 * @param array $data Post data.
+		 */
+		public function wp_slash_after_xml_import( $postdata, $data ) {
+			return wp_slash( $postdata );
 		}
 
 		/**
@@ -495,6 +504,8 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 				);
 			}
 
+			Astra_Sites_Error_Handler::get_instance()->start_error_handler();
+
 			$api_args = apply_filters(
 				'astra_sites_api_args', array(
 					'timeout' => 30,
@@ -502,6 +513,8 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 			);
 
 			$request = wp_remote_get( $api_url, $api_args );
+
+			Astra_Sites_Error_Handler::get_instance()->stop_error_handler();
 
 			if ( is_wp_error( $request ) ) {
 				$wp_error_code = $request->get_error_code();
@@ -1084,7 +1097,11 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 				wp_send_json_error( __( 'You are not allowed to perform this action', 'astra-sites' ) );
 			}
 
+			Astra_Sites_Error_Handler::get_instance()->start_error_handler();
+
 			switch_theme( 'astra' );
+
+			Astra_Sites_Error_Handler::get_instance()->stop_error_handler();
 
 			wp_send_json_success(
 				array(
@@ -1107,6 +1124,8 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 					wp_send_json_error( __( 'You are not allowed to perform this action', 'astra-sites' ) );
 				}
 			}
+
+			Astra_Sites_Error_Handler::get_instance()->start_error_handler();
 
 			$terms = astra_sites_get_reset_term_data();
 
@@ -1143,6 +1162,8 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 				}
 			}
 
+			Astra_Sites_Error_Handler::get_instance()->stop_error_handler();
+
 			if ( wp_doing_ajax() ) {
 				wp_send_json_success();
 			}
@@ -1161,6 +1182,8 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 					wp_send_json_error( __( 'You are not allowed to perform this action', 'astra-sites' ) );
 				}
 			}
+
+			Astra_Sites_Error_Handler::get_instance()->start_error_handler();
 
 			// Suspend bunches of stuff in WP core.
 			wp_defer_term_counting( true );
@@ -1197,6 +1220,8 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 			wp_defer_term_counting( false );
 			wp_defer_comment_counting( false );
 
+			Astra_Sites_Error_Handler::get_instance()->stop_error_handler();
+
 			if ( wp_doing_ajax() ) {
 				wp_send_json_success();
 			}
@@ -1230,11 +1255,15 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 				}
 			}
 
+			Astra_Sites_Error_Handler::get_instance()->start_error_handler();
+
 			$data = array(
 				'reset_posts'    => astra_sites_get_reset_post_data(),
 				'reset_wp_forms' => astra_sites_get_reset_form_data(),
 				'reset_terms'    => astra_sites_get_reset_term_data(),
 			);
+
+			Astra_Sites_Error_Handler::get_instance()->stop_error_handler();
 
 			if ( wp_doing_ajax() ) {
 				wp_send_json_success( $data );
@@ -1972,6 +2001,7 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 		 */
 		private function includes() {
 
+			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-error-handler.php';
 			require_once ASTRA_SITES_DIR . 'inc/classes/functions.php';
 			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-white-label.php';
 			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-page.php';
@@ -1979,6 +2009,7 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-elementor-images.php';
 			require_once ASTRA_SITES_DIR . 'inc/classes/compatibility/class-astra-sites-compatibility.php';
 			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-importer.php';
+			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-image-processing.php';
 			require_once ASTRA_SITES_DIR . 'inc/classes/class-astra-sites-wp-cli.php';
 			require_once ASTRA_SITES_DIR . 'inc/lib/class-astra-sites-ast-block-templates.php';
 			require_once ASTRA_SITES_DIR . 'inc/lib/onboarding/class-onboarding.php';
@@ -2012,20 +2043,12 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 				}
 			}
 
-			if ( ! interface_exists( 'Throwable' ) ) {
-				// Fatal error handler for PHP < 7.
-				register_shutdown_function( array( $this, 'shutdown_handler' ) );
-			}
-
-			// Fatal error handler for PHP >= 7, and uncaught exception handler for all PHP versions.
-			set_exception_handler( array( $this, 'exception_handler' ) );
+			Astra_Sites_Error_Handler::get_instance()->start_error_handler();
 
 			$plugin_init = ( isset( $_POST['init'] ) ) ? esc_attr( $_POST['init'] ) : $init;
 			$activate = activate_plugin( $plugin_init, '', false, false );
 
-			// Restore the error handlers.
-			restore_error_handler();
-			restore_exception_handler();
+			Astra_Sites_Error_Handler::get_instance()->stop_error_handler();
 
 			if ( is_wp_error( $activate ) ) {
 				if ( defined( 'WP_CLI' ) ) {
@@ -2052,72 +2075,6 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 					array(
 						'success' => true,
 						'message' => __( 'Plugin Activated', 'astra-sites' ),
-					)
-				);
-			}
-		}
-
-		/**
-		 * Uncaught exception handler.
-		 *
-		 * In PHP >= 7 this will receive a Throwable object.
-		 * In PHP < 7 it will receive an Exception object.
-		 *
-		 * @throws Exception Exception that is catched.
-		 * @param Throwable|Exception $e The error or exception.
-		 */
-		public function exception_handler( $e ) {
-			if ( is_a( $e, 'Exception' ) ) {
-				$error = 'Uncaught Exception';
-			} else {
-				$error = 'Uncaught Error';
-			}
-
-			if ( wp_doing_ajax() ) {
-				wp_send_json_error(
-					array(
-						'message' => __( 'There was an error activating plugin on your website.', 'astra-sites' ),
-						'stack' => array(
-							'error-message' => sprintf(
-								'%s: %s',
-								$error,
-								$e->getMessage()
-							),
-							'file' => $e->getFile(),
-							'line' => $e->getLine(),
-							'trace' => $e->getTrace(),
-						),
-					)
-				);
-			}
-
-			throw $e;
-		}
-
-		/**
-		 * Displays fatal error output for sites running PHP < 7.
-		 */
-		public function shutdown_handler() {
-			$e = error_get_last();
-
-			if ( empty( $e ) || ! ( $e['type'] & ST_ERROR_FATALS ) ) {
-				return;
-			}
-
-			if ( $e['type'] & E_RECOVERABLE_ERROR ) {
-				$error = 'Catchable fatal error';
-			} else {
-				$error = 'Fatal error';
-			}
-
-			if ( wp_doing_ajax() ) {
-				wp_send_json_error(
-					array(
-						'message' => __( 'There was an error activating plugin on your website.', 'astra-sites' ),
-						'stack' => array(
-							'error-message' => $error,
-							'error' => $e,
-						),
 					)
 				);
 			}
@@ -2178,11 +2135,23 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 
 			$plugin_updates          = get_plugin_updates();
 			$update_avilable_plugins = array();
+			$incompatible_plugins = array();
 
 			if ( ! empty( $required_plugins ) ) {
+				$php_version = Astra_Sites_Onboarding_Setup::get_instance()->get_php_version();
 				foreach ( $required_plugins as $key => $plugin ) {
 
 					$plugin = (array) $plugin;
+
+					if ( 'woocommerce' === $plugin['slug'] && version_compare( $php_version, '7.0', '<' ) ) {
+						$plugin['min_php_version'] = '7.0';
+						$incompatible_plugins[] = $plugin;
+					}
+
+					if ( 'presto-player' === $plugin['slug'] && version_compare( $php_version, '7.3', '<' ) ) {
+						$plugin['min_php_version'] = '7.3';
+						$incompatible_plugins[] = $plugin;
+					}
 
 					/**
 					 * Has Pro Version Support?
@@ -2257,6 +2226,7 @@ if ( ! class_exists( 'Astra_Sites' ) ) :
 				'required_plugins'             => $response,
 				'third_party_required_plugins' => $third_party_required_plugins,
 				'update_avilable_plugins'      => $update_avilable_plugins,
+				'incompatible_plugins'         => $incompatible_plugins,
 			);
 
 			if ( wp_doing_ajax() ) {

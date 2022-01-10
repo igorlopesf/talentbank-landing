@@ -5,7 +5,7 @@ Plugin URI: https://themeover.com/microthemer
 Text Domain: microthemer
 Domain Path: /languages
 Description: Microthemer is a feature-rich visual design plugin for customizing the appearance of ANY WordPress Theme or Plugin Content (e.g. posts, pages, contact forms, headers, footers, sidebars) down to the smallest detail. For CSS coders, Microthemer is a proficiency tool that allows them to rapidly restyle a WordPress theme or plugin. For non-coders, Microthemer's intuitive point and click editing opens the door to advanced theme and plugin customization.
-Version: 7.0.8.1
+Version: 7.0.9.8
 Author: Themeover
 Author URI: https://themeover.com
 */
@@ -279,7 +279,22 @@ if (!class_exists('tvr_common')) {
 				'ma_admin_mobile_css',
 				'custom_wp_admin_css',
 				'ma_admin_media_css',
+
+				// for UIPress
+				'uip-app',
+                'uip-app-rtl',
+                'uip-icons',
+                'uip-font'
+
+
 			);
+
+			// for UIPress
+			/*if ( class_exists('uipress') ){
+				$conflict_styles = array_merge($conflict_styles, array(
+
+                ));
+			}*/
 
 			foreach ($conflict_styles as $style_handle){
 				wp_dequeue_style($style_handle);
@@ -299,7 +314,7 @@ if ( is_admin() ) {
 		// define
 		class tvr_microthemer_admin {
 
-			var $version = '7.0.8.1';
+			var $version = '7.0.9.8';
 			var $db_chg_in_ver = '7.0.5.0';
 
 			var $locale = ''; // current language
@@ -321,6 +336,7 @@ if ( is_admin() ) {
 			var $outdatedTabIssue = 0;
 			var $outdatedTabDebug = '';
 			var $forcePublish = false;
+			var $innoFirewall = false;
 			var $ei = 0; // error index
 			var $permissionshelp;
 			var $microthemeruipage = 'tvr-microthemer.php';
@@ -586,6 +602,10 @@ if ( is_admin() ) {
 
 						// fix compatibility issues due to a plugin loading scripts or styles on MT interface pages
 						add_action('admin_enqueue_scripts', array('tvr_common', 'dequeue_rogue_assets'), 1000);
+						add_action('wp_enqueue_media', array('tvr_common', 'dequeue_rogue_assets'), 1000);
+
+
+
 
 					} else {
 						//echo 'it is an ajax request';
@@ -848,7 +868,7 @@ if ( is_admin() ) {
 
 				$domain =  $test_domain ? $test_domain : $this->home_url;
 
-				$base_url = $proxy
+				$base_url = ($proxy) // || 1 to force proxy
 					? 'https://validate.themeover.com/'
 					: 'https://themeover.com/wp-content/tvr-auto-update/validate.php';
 
@@ -856,7 +876,8 @@ if ( is_admin() ) {
 				          .'&domain='.$domain
 				          .'&mt_version='.$this->version;
 
-				/*$this->show_me = 'https://tvrdev.themeover.com/wp-content/tvr-auto-update/validate.php'.'?'.$params;
+				/* Get local URL
+				* $this->show_me = 'https://tvrdev.themeover.com/wp-content/tvr-auto-update/validate.php'.'?'.$params;
 				return 'https://tvrdev.themeover.com/wp-content/tvr-auto-update/validate.php'.'?'.$params;*/
 
 				return $base_url.'?'.$params;
@@ -873,19 +894,26 @@ if ( is_admin() ) {
 			 * @param $email
 			 * @param bool $proxy
 			 *
-			 * @return false|string
+			 * @return array
 			 */
 			function connect_to_themeover($url, $email, $proxy = false){
 
 				//$url = $this->themeover_connection_url($email, $proxy);
-				$responseString = wp_remote_fopen($url);
+				//$responseString = wp_remote_fopen($url);
+				$result = $this->wp_remote_fopen($url);
+				$responseString = $result['body'];
+				$responseCode = $result['code'];
 				$response = json_decode($responseString, true);
 
 				//$this->show_me.= 'The response from '. $url . ': '. $responseString;
 
 				// if we have a valid result or we have already tried the fallback proxy script, return result
 				if (!empty($response['message']) or $proxy){
-					return $responseString;
+					return array(
+					    'responseString' => $responseString,
+                        'url' => $url,
+                        'code' => $responseCode
+                    );
 				}
 
 				// the initial connection was unsuccessful, possibly due to firewall rules, attempt proxy connection
@@ -905,9 +933,29 @@ if ( is_admin() ) {
 				);
 				$was_capped_version = $this->is_capped_version();
 				$response = false;
-				$url = $this->themeover_connection_url($email);
-				$responseString = $this->connect_to_themeover($url, $email);
-				//$this->show_me.= $responseString;
+				//$url = $this->themeover_connection_url($email);
+				//$responseString = $this->connect_to_themeover($url, $email);
+
+				$connection_details = $this->connect_to_themeover(
+				        $this->themeover_connection_url($email),
+                        $email
+                );
+
+				//wp_die('<pre>$connection_details: ' . print_r($connection_details, true) . '</pre>');
+
+				$responseString = $connection_details['responseString'];
+				$response_code = $connection_details['code'];
+				$url = $connection_details['url'];
+
+				//$this->show_me.= '<pre>$connection_details: ' . print_r($connection_details, true) . '</pre>';
+
+				/*$this->innoFirewall = array_merge($connection_details, array(
+					'debug' => array(
+						'responseString' => $responseString,
+						'decodedResponse' => json_decode($responseString, true),
+						'altDecoded' => $this->json('decode', $responseString)
+					)
+				));*/
 
 				// accommodate new json response format
 				if ( strpos($responseString, '{') !== false ){
@@ -920,13 +968,27 @@ if ( is_admin() ) {
 
 				// if no valid response, check for http issue
 				if (empty($response['message'])){
-					$response_code = wp_remote_retrieve_response_code( wp_remote_get($url) );
+
+				    //$response_code = wp_remote_retrieve_response_code( wp_remote_get($url) ); // now collected in first request
+
 					if ($response_code != 200){
 						$response['message'] = 'connection error';
 						if (empty($response_code) && !empty($responseString)){
 							$response_code  = esc_html($responseString);
 						}
 					}
+
+					// we may have got a HTML captcha page response, display this
+					else {
+						$response['message'] = 'possible firewall issue';
+					    $this->innoFirewall = array_merge($connection_details, array(
+					            'debug' => array(
+					                'responseString' => $responseString,
+                                    'decodedResponse' => $response,
+                                    'altDecoded' => $this->json('decode', $responseString)
+                                )
+                        ));
+                    }
 
 					$response['code'] = $response_code;
 
@@ -1874,11 +1936,14 @@ if ( is_admin() ) {
 
 			// add js
 			function add_js() {
-				if (TVR_MICRO_VARIANT == 'themer') {
+
+			    if (TVR_MICRO_VARIANT == 'themer') {
 
 					if (!$this->optimisation_test){
 						wp_enqueue_media(); // adds over 1000 lines of code to footer
 					}
+
+
 
 					// Run pre-wordPress 5.6 jQuery and jQuery UI (temp fix for users with sites that still have issues)
 					$runLegacyJquery = !empty($this->preferences['wp55_jquery_version']);
@@ -1974,6 +2039,7 @@ if ( is_admin() ) {
 
 						// mt core namespace
 						array('h' => 'tvr_core', 'f' => 'mt-core.js'),
+						array('h' => 'tvr_mcth_cssprops', 'f' => 'data/program-data.js'), // this will be dyn soon
 
 						// js libraries (prefix name with mt- if I've edited the library)
 						// use ace2, ace4 and have /ace as sub dir for easy globs in gulp file
@@ -2009,7 +2075,7 @@ if ( is_admin() ) {
 						array('h' => 'tvr_sortable', 'f' => 'lib/sortable/mt-sortable-1.13.js'),
 
 						// custom modules
-						array('h' => 'tvr_mcth_cssprops', 'f' => 'data/program-data.js'), // this will be dyn soon
+
 						array('h' => 'tvr_utilities', 'f' => 'mod/mt-utilities.js'),
 						array('h' => 'tvr_widget', 'f' => 'mod/mt-widget.js'),
 						array('h' => 'tvr_layout', 'f' => 'mod/mt-layout.js', 'page' => array(
@@ -2382,7 +2448,7 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 
 				// color variables
 				$colorVariablesRuleSet = !empty($this->preferences['mt_color_variables_css'])
-					? '.sp-container, .tvr-input-wrap { '.strip_tags($this->preferences['mt_color_variables_css']).' }'
+					? '.sp-container .tile-color, .tvr-input-wrap .var-color-box { '.strip_tags($this->preferences['mt_color_variables_css']).' }'
 					: '';
 
 				echo '
@@ -4351,10 +4417,13 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 				$save_data, $user_action = '', $tryCreate = true, $preferences = false, $upgrade_backup = false
 			) {
 
+				//debug_print_backtrace();
+			    //wp_die('user_action_debug: '. $user_action);
+
 				// sometimes we don't want to log an action e.g. if editing a selector's code via the editor
 				// the change will be shown in the code editor change history entry
 				// and we don't want them to restore one without the other (selector code and editor content)
-				if (is_null($user_action) or $user_action === 'null'){
+				if (is_null($user_action) or $user_action === 'null' or $user_action === 'false' or $user_action === false){
 					return true; // false would generate an error message
 				}
 
@@ -4514,7 +4583,7 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 				$total_rows = $wpdb->num_rows;
 				// if no revisions, explain
 				if ($total_rows == 0) {
-					return '<span class="revisions-table">' .
+					return '<span class="no-revisions-table">' .
 					       esc_html__('No Revisions have been created yet. This will happen after your next save.', 'microthemer') .
 					       '</span>';
 				}
@@ -5379,7 +5448,10 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 
 				$pref_array = $this->deep_unescape($_POST['tvr_preferences'], 0, 1, 1);
 				$pref_array['num_saves'] = ++$this->preferences['num_saves'];
-				$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+
+				if (empty($this->preferences['auto_publish_mode'])){
+					$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+				}
 
 				// CSS units need saving in a different way (as my_props is more than just css units)
 				$pref_array = $this->update_default_css_units($pref_array);
@@ -5634,7 +5706,10 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 						// save successful
 						else {
 
-							$saveOk = esc_html__('Settings saved', 'microthemer');
+							$saveOk = empty($this->preferences['auto_publish_mode'])
+                                ? esc_html__('Draft saved', 'microthemer')
+							    : esc_html__('Settings saved and published', 'microthemer');
+
 							$this->log(
 								$saveOk,
 								'<p>' . esc_html__('The UI interface settings were successfully saved.', 'microthemer') . '</p>',
@@ -5929,6 +6004,14 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 					if (isset($_GET['mt_dark_mode'])) {
 						$pref_array = array();
 						$pref_array['mt_dark_mode'] = intval($_GET['mt_dark_mode']);
+						$this->savePreferences($pref_array);
+						wp_die();
+					}
+
+					// Auto-publish mode
+					if (isset($_GET['auto_publish_mode'])) {
+						$pref_array = array();
+						$pref_array['auto_publish_mode'] = intval($_GET['auto_publish_mode']);
 						$this->savePreferences($pref_array);
 						wp_die();
 					}
@@ -6631,7 +6714,10 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 
 						// save and preset message
 						$pref_array['num_saves'] = ++$this->preferences['num_saves'];
-						$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+
+						if (empty($this->preferences['auto_publish_mode'])){
+							$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+						}
 
 						if ($this->savePreferences($pref_array)) {
 
@@ -6674,7 +6760,11 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 						$_POST = $this->deep_unescape($_POST, 0, 1, 1);
 						$pref_array['enq_js'] = $_POST['tvr_preferences']['enq_js'];
 						$pref_array['num_saves'] = ++$this->preferences['num_saves'];
-						$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+
+						if (empty($this->preferences['auto_publish_mode'])){
+							$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+						}
+
 						// save and present message
 						if ($this->savePreferences($pref_array)) {
 							$this->log(
@@ -7846,12 +7936,22 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 					'sidebar' => __('Sidebar', 'microthemer'),
 					'footer' => __('Footer', 'microthemer')
 				);
+				$initial_index = 0;
 				foreach ($folders as $en_slug => $label){
 					//$this->default_folders[$this->to_param($label)] = '';
 					$this->default_folders[$this->to_param($label)]['this'] = array(
-						'label' => $label
+						'label' => $label,
+                        'index' => $initial_index
 					);
+					$initial_index+= 100;
 				}
+
+				// add non_section stuff that would get set by JS otherwise, causing a save request
+                // which bumps up num_saves and produces the wrong initial notification and publish button state
+				$this->default_folders['non_section'] = array(
+				        'meta' => array(),
+				        'active_events' => '',
+                );
 			}
 
 			// check if the file is an image
@@ -8827,6 +8927,10 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 						// icon
 						$areas_html.= $item_icon;
 
+						if (!empty($arr2['text_data_attr'])){
+							$text_attr = $this->format_data_attr_array($arr2['text_data_attr'], $text_attr);
+						}
+
 						// text label
 						$colon = ''; // isset($arr2['toggle']) & ($item_key!= 'highlighting') ? ':' : '';
 						$areas_html.= '<span class="mt-menu-text '.$common_class.$show_dialog_class.' '.$text_class.'"
@@ -8893,6 +8997,17 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 					'areas_html' => $areas_html,
 					'footer' => $dialog_footer_html
 				);
+			}
+
+			function format_data_attr_array($array, $data_attr = ''){
+
+				if (!empty($array) && is_array($array)){
+					foreach($array as $da_key => $da_value){
+						$data_attr.= ' data-'.$da_key.'="'.$da_value.'"';
+					}
+				}
+
+				return $data_attr;
 			}
 
 			function suggested_screen_layouts(){
@@ -11432,7 +11547,10 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 				}
 
 				$pref_array['num_saves'] = ++$this->preferences['num_saves'];
-				$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+
+				if (empty($this->preferences['auto_publish_mode'])){
+					$pref_array['num_unpublished_saves'] = ++$this->preferences['num_unpublished_saves'];
+				}
 
 				if ($this->savePreferences($pref_array) and $activated_from != 'customised') {
 					$this->log(
@@ -11452,7 +11570,7 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 
 				// get user config for draft
 				$css_files = array();
-				$file_stub = $this->preferences['draft_mode'] && !$this->forcePublish
+				$file_stub = $this->preferences['draft_mode'] && !$this->forcePublish  && empty($this->preferences['auto_publish_mode'])
 					? 'draft'
 					: 'active';
 
@@ -11580,7 +11698,7 @@ $this->show_me = '<pre>$media_queries_list: '.print_r($media_queries_list, true)
 					$pref_array['load_js'] = 0;
 				}
 				// always update file otherwise JS can't be cleared
-				$file_stub = $this->preferences['draft_mode'] && !$this->forcePublish
+				$file_stub = $this->preferences['draft_mode'] && !$this->forcePublish && empty($this->preferences['auto_publish_mode'])
 					? 'draft'
 					: 'active';
 
@@ -13528,6 +13646,30 @@ DateCreated: '.date('Y-m-d').'
 				}
 			}
 
+			// slightly modified version of wp_remote_fopen where we also get the response code
+			function wp_remote_fopen( $uri ) {
+
+			    $parsed_url = parse_url( $uri );
+
+				if ( ! $parsed_url || ! is_array( $parsed_url ) ) {
+					return false;
+				}
+
+				$options            = array();
+				$options['timeout'] = 10;
+
+				$response = wp_safe_remote_get( $uri, $options );
+
+				if ( is_wp_error( $response ) ) {
+					return false;
+				}
+
+				return array(
+				   'body' => wp_remote_retrieve_body( $response ),
+                   'code' => wp_remote_retrieve_response_code( $response )
+                );
+			}
+
 			// resize image using wordpress functions
 			function wp_resize($path, $w, $h, $dest, $crop = true){
 				$image = wp_get_image_editor( $path );
@@ -13726,7 +13868,7 @@ if (!is_admin()) {
 			var $preferencesName = 'preferences_themer_loader';
 			// @var array $preferences Stores the ui options for this plugin
 			var $preferences = array();
-			var $version = '7.0.8.1';
+			var $version = '7.0.9.8';
 			var $microthemeruipage = 'tvr-microthemer.php';
 			var $file_stub = '';
 			var $min_stub = '';

@@ -35,13 +35,22 @@ class Intelligent_Starter_Templates_Loader {
 	}
 
 	/**
+	 * List of hosting providers.
+	 */
+	private $hosting_providers = array(
+		'unaux',
+		'epizy',
+		'ezyro',
+	);
+
+	/**
 	 * Constructor.
 	 *
 	 * @since  3.0.0-beta.1
 	 */
 	public function __construct() {
 		// Starter Content.
-		require_once INTELLIGENT_TEMPLATES_DIR . 'classes/class-astra-sites-ai-site-setup.php';
+		require_once INTELLIGENT_TEMPLATES_DIR . 'classes/class-astra-sites-onboarding-setup.php';
 
 		// Admin Menu.
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
@@ -188,9 +197,28 @@ class Intelligent_Starter_Templates_Loader {
 			'supportLink' => 'https://wpastra.com/starter-templates-support/?ip=' . Astra_Sites_Helper::get_client_ip(),
 			'isBrizyEnabled'=> get_option( 'st-brizy-builder-flag'),
 			'analytics' => get_site_option( 'bsf_analytics_optin', false ),
+			'phpVersion' => PHP_VERSION,
+			'reportError' => $this->should_report_error(),
 		);
 
 		return apply_filters( 'starter_templates_onboarding_localize_vars', $data );
+	}
+
+	/**
+	 * Check if we should report error or not.
+	 * Skipping error reporting for a few hosting providers.
+	 */
+	public function should_report_error() {
+
+		/**
+		 * Byassing error reporting for a few hosting providers.
+		 */
+		foreach( $this->hosting_providers as $provider ) {
+			if ( strpos( ABSPATH, $provider ) !== false ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

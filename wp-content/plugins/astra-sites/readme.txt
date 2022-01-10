@@ -1,11 +1,11 @@
-=== Starter Templates — Elementor, Gutenberg & Beaver Builder Templates ===
+=== Starter Templates — Elementor, WordPress & Beaver Builder Templates ===
 Contributors: brainstormforce
 Donate link: https://wpastra.com/pro/
 Tags: Elementor,Beaver Builder,Templates,Gutenberg,Block Editor,Astra Starter Sites
 Requires at least: 4.4
 Requires PHP: 5.3
 Tested up to: 5.8
-Stable tag: 3.0.15
+Stable tag: 3.0.24
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -132,6 +132,46 @@ We are open to suggestions and would love to work on topics that our users are l
 8. Free Images by Pixabay right inside the WordPress media popup.
 
 == Changelog ==
+
+v3.0.24 - 7-January-2022
+- Fix: Fixed an issue with WXR Import versioning.
+
+v3.0.23 - 6-January-2022
+- Fix: Better error and exception handling while importing.
+- Fix: Fixed an issue with redirection while installing Ultimate Addons for Beaver Builder - Lite plugin.
+- Fix: Fixed an issue where the templates library won't refresh in real-time after the sync process.
+- Fix: Presto Player installation showing PHP incompatibility notice while importing a template.
+
+v3.0.22 - 4-January-2022
+- Fix: Improved customizer import process.
+- Fix: Improved import process for Elementor based sites.
+
+v3.0.21 - 3-January-2022
+- Fix: Avoided redirection for Beaver Builder plugin when activated from import screen.
+- Fix: Resolved a few errors with the pre-import PHP compatibility screen.
+
+v3.0.20 - 29-December-2021
+- Fix: Faster import process by deferring image meta processing.
+- Fix: Minor UI fixes.
+
+v3.0.19 - 29-December-2021
+- Fix: Import error due to timeout error for sites where loopback requests are not working.
+- Fix: Styling for default fonts was not working on first load.
+
+v3.0.18 - 28-December-2021
+- Improvement: Added a pre-import screen to notify about incompatible PHP versions for a few plugins.
+- Improvement: Better Color Palettes.
+- Fix: Reset for Color Palette and Typography not working in some cases.
+
+v3.0.17 - 22-December-2021
+- Improvement: More and better color palettes and typography while customizing the demo.
+
+v3.0.16 - 21-December-2021
+- Improvement: Optimised the CartFlows flows import process.
+- Improvement: Added a Required screen prior to import if any system requirements are not met on the user's website.
+- Fix: Fixed an issue with colors not applying to a few Gutenberg-based blocks in WooCommerce demos.
+- Fix: Fixed an issue with White Labeling the import process.
+- Fix: Better import process to avoid errors in import.
 
 v3.0.15 - 15-December-2021
 - Fix: plugin activation errors for starter template using Ultimate Addons for Gutenberg by disabling default redirect from UAG on activation

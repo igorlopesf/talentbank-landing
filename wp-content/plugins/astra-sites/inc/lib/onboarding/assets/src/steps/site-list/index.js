@@ -42,6 +42,9 @@ const SiteList = () => {
 		siteType,
 		siteOrder,
 		siteCategory,
+		allSitesData,
+		allCategories,
+		allCategoriesAndTags,
 	} = storedState;
 
 	useEffect( () => {
@@ -50,13 +53,17 @@ const SiteList = () => {
 			templateResponse: null,
 			selectedTemplateName: '',
 			selectedTemplateType: '',
+			shownRequirementOnce: false,
 		} );
 
 		const response = getSitesBySearchTerm(
 			siteSearchTerm,
 			siteType,
 			'',
-			builder
+			builder,
+			allSitesData,
+			allCategories,
+			allCategoriesAndTags
 		);
 
 		let sites = { ...response.sites, ...response.related };
@@ -90,7 +97,15 @@ const SiteList = () => {
 		setSiteData( {
 			...siteData,
 			...response,
-			defaultSites: getSitesBySearchTerm( '', '', '', builder ).sites,
+			defaultSites: getSitesBySearchTerm(
+				'',
+				'',
+				'',
+				builder,
+				allSitesData,
+				allCategories,
+				allCategoriesAndTags
+			).sites,
 			sites,
 			allFavorites,
 		} );
@@ -105,6 +120,7 @@ const SiteList = () => {
 		siteType,
 		siteOrder,
 		siteCategory,
+		allSitesData,
 	] );
 
 	storeCurrentState( storedState );
