@@ -294,12 +294,12 @@ if ($_GET['page'] == $this->microthemeruipage){
 	// we now use TvrLang in the mt-spectrum file so set the handle to tvr_deps when minified
 	// so the var has loaded before the deps.js script
 	$load_before_handle = TVR_DEV_MODE ? 'tvr_main_ui' : 'tvr_deps';
-
 	wp_localize_script( $load_before_handle, 'TvrLang', $TvrLang);
 }
 // stand alone prefs page needs too
 else if ($_GET['page'] == $this->preferencespage){
-	wp_localize_script( 'tvr_man', 'TvrLang', $TvrLang);
+	$load_before_handle = TVR_DEV_MODE ? 'tvr_man' : 'tvr_deps';
+	wp_localize_script( $load_before_handle, 'TvrLang', $TvrLang); // tvr_man now
 }
 
 ?>

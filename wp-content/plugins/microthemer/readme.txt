@@ -101,6 +101,17 @@ Microthemer has built-in documentation! Just click the Help option (top right of
 
 == Changelog ==
 
+= 7.1.0.1 (January 12th, 2022) =
+
+# Bugs fixed
+* An issue with the dropdown menus on the standalone preferences page.
+
+= 7.1.0.0 (January 12th, 2022) =
+
+# Bugs fixed
+* Using the re-target selector option could sometimes save the preliminary retargeting even if it was cancelled.
+* The color picker could generate an error after re-targeting a selector if it was opened just before re-targeting.
+
 = 7.0.9.8 (January 8th, 2022) =
 
 # Bugs fixed
